@@ -1,5 +1,12 @@
 .env
 .venv
+.venv/
 seed.py
+.env.*
+__pycache__/
+*.pyc
+
+
+alembic/__pycache__/
+
 alembic.ini
-alembic/*
