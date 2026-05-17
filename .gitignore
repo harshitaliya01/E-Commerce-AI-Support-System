@@ -1,3 +1,5 @@
 .env
 .venv
 seed.py
+alembic.ini
+alembic/*
