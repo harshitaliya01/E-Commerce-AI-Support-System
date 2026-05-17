@@ -1,0 +1,32 @@
+# 🛒 E-Commerce AI Support Chatbot
+### Amazon / Flipkart Style AI Customer Support Assistant
+
+An intelligent AI-powered support system inspired by Amazon and Flipkart customer service that helps customers resolve issues instantly through conversational AI.
+
+The chatbot handles order support, refunds, recommendations, FAQs, payment issues, and escalation workflows using FastAPI + LangGraph + RAG architecture.
+
+---
+
+# 🚀 Project Overview
+
+## AI Shopping Support & Order Assistant
+
+This project provides an AI chatbot capable of assisting customers with:
+
+- Order tracking
+- Returns and refunds
+- Product questions
+- Payment support
+- Delivery updates
+- Multilingual conversations
+
+---
+
+# ✨ Key Features
+
+## 1. Order Tracking Assistant
+
+### User Query
+
+```text
+Where is my order?
