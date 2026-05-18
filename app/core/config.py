@@ -16,7 +16,8 @@ class Settings(BaseSettings):
 
     OPENAI_API_KEY: str
     BASE_URL: str
-    OPENAI_MODEL: str
+    MODEL: str
+    STRUCTURE_MODEL: str
     JINA_API_KEY: str
 
     model_config = SettingsConfigDict(

@@ -1,10 +1,8 @@
 from fastapi import FastAPI
 
 # from app.auth.router import router as auth_router
-from app.ai.router import router as new_graph
+from app.chatbot.router import router as new_graph
 # from app.products.router import router as product_router
-# from app.orders.router import router as order_router
-# from app.chatbot.router import router as chatbot_router
 # from app.websocket.router import router as websocket_router
 
 from app.core.config import settings
@@ -17,6 +15,7 @@ app = FastAPI(
 from slowapi.errors import (
     RateLimitExceeded
 )
+from slowapi import _rate_limit_exceeded_handler
 
 from slowapi.middleware import (
     SlowAPIMiddleware
@@ -29,13 +28,12 @@ app.state.limiter = limiter
 app.add_middleware(
     SlowAPIMiddleware
 )
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.include_router(new_graph)
 # app.include_router(websocket_router)
-# app.include_router(chatbot_router)
 # app.include_router(auth_router)
 # app.include_router(product_router)
-# app.include_router(order_router)
 
 
 from fastapi import Request

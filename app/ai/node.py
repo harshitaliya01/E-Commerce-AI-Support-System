@@ -1,19 +1,10 @@
-"""
-LangGraph nodes — each node is an async function that receives AgentState
-and returns a partial state dict to merge.
-"""
-from __future__ import annotations
-
-import re
-
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 
 from app.core.config import settings
-from app.ai.state import AgentState, Intent
+from app.ai.state import AgentState
 from app.ai.tools import (
     escalate_to_human,
-    get_recommendations,
 )
 
 from app.services.order_service import get_order_details, initiate_return
@@ -21,7 +12,7 @@ from app.ai.helper import extract_order_id
 # ── Shared LLM ────────────────────────────────────────────────────────────────
 _llm = ChatOpenAI(
     base_url=settings.BASE_URL,
-    model=settings.OPENAI_MODEL,
+    model=settings.MODEL,
     api_key=settings.OPENAI_API_KEY,
     temperature=0.3,
 )
@@ -33,7 +24,6 @@ async def return_refund_node(state: AgentState) -> dict:
     """Handle return / refund requests end-to-end."""
     last_msg = state.messages[-1].content
 
-    match = re.search(r"(ORD[-\s]?\d+)", last_msg, re.IGNORECASE)
     order_id = extract_order_id(state)
 
     if not order_id:
@@ -58,9 +48,18 @@ async def return_refund_node(state: AgentState) -> dict:
         )
         return {"response": reply, "messages": [AIMessage(content=reply)]}
 
+    # Ask for confirmation before initiating
+    msg_lower = last_msg.lower()
+    if "confirm" not in msg_lower and "yes" not in msg_lower and "initiate" not in msg_lower:
+        reply = (
+            f"✅ **Order {order_id}** is eligible for a return/refund.\n\n"
+            f"Would you like me to initiate the return process now? "
+            f"Please reply with **'Yes, confirm return'** to proceed."
+        )
+        return {"response": reply, "messages": [AIMessage(content=reply)]}
+
     # Initiate return
     result = await initiate_return(order_id)
-    # result = await initiate_return(order_id, reason="Customer requested via chatbot")
     if result["success"]:
         reply = (
             f"✅ **Return Initiated Successfully!**\n\n"
@@ -102,71 +101,6 @@ async def payment_issue_node(state: AgentState) -> dict:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# NODE 6 — Delivery Update
-# ─────────────────────────────────────────────────────────────────────────────
-async def delivery_update_node(state: AgentState) -> dict:
-    """Provide delivery updates using order data."""
-    last_msg = state.messages[-1].content
-    match = re.search(r"(ORD[-\s]?\d+)", last_msg, re.IGNORECASE)
-    order_id = extract_order_id(state)
-
-    if not order_id:
-        reply = (
-            "To check your delivery update, please provide your **Order ID**. "
-            "You'll find it in your order confirmation email."
-        )
-        return {"response": reply, "messages": [AIMessage(content=reply)]}
-
-    data = await get_order_details(order_id)
-    if "error" in data:
-        reply = f"❌ {data['error']}"
-    else:
-        reply = (
-            f"🚚 **Delivery Update for Order {order_id}**\n\n"
-            f"**Current Status:** {data['status']}\n"
-            f"**Expected By:** {data['estimated_delivery']}\n"
-            f"**Carrier:** {data.get('carrier', 'Not yet assigned')}\n\n"
-            + (
-                f"📍 [Live Tracking]({data['tracking_url']})"
-                if data.get("tracking_url")
-                else "Live tracking will be activated once your order is shipped."
-            )
-        )
-    return {"response": reply, "messages": [AIMessage(content=reply)]}
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# NODE 7 — Product Recommendation
-# ─────────────────────────────────────────────────────────────────────────────
-async def product_recommendation_node(state: AgentState) -> dict:
-    """Extract category/budget and return curated recommendations."""
-    last_msg = state.messages[-1].content.lower()
-
-    # Detect category
-    category = "general"
-    if any(w in last_msg for w in ["headphone", "earphone", "electronic", "gadget", "watch"]):
-        category = "electronics"
-    elif any(w in last_msg for w in ["shoe", "footwear", "sneaker", "boot"]):
-        category = "shoes"
-
-    # Detect budget (₹ or Rs or just a number)
-    budget_match = re.search(r"(?:₹|rs\.?\s*|under\s*)(\d+)", last_msg)
-    budget = int(budget_match.group(1)) if budget_match else None
-
-    products = await get_recommendations(category, budget)
-    lines = "\n".join(
-        f"• **{p['name']}** — ₹{p['price']} ⭐ {p['rating']}"
-        for p in products
-    )
-    budget_str = f" under ₹{budget}" if budget else ""
-    reply = (
-        f"🛍️ Here are my top picks for **{category}{budget_str}**:\n\n"
-        f"{lines}\n\n"
-        f"Want more details or comparisons on any of these?"
-    )
-    return {"response": reply, "messages": [AIMessage(content=reply)]}
-
-# ─────────────────────────────────────────────────────────────────────────────
 # NODE 9 — Escalate to Human
 # ─────────────────────────────────────────────────────────────────────────────
 async def escalate_node(state: AgentState) -> dict:
@@ -201,15 +135,15 @@ async def escalate_node(state: AgentState) -> dict:
     }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# NODE 10 — Out of Scope / Fallback
-# ─────────────────────────────────────────────────────────────────────────────
-async def fallback_node(state: AgentState) -> dict:
-    """Politely decline and redirect."""
+async def greeting_node(state: AgentState) -> dict:
+    """Welcome the user and list capabilities."""
     reply = (
-        "I'm your e-commerce support assistant and can help with:\n\n"
-        "📦 Order tracking  |  🔄 Returns & Refunds  |  💳 Payment Issues\n"
-        "🚚 Delivery Updates  |  🛍️ Product Recommendations  |  ❓ FAQs\n\n"
+        "👋 **Hello! I'm your e-commerce support assistant.**\n\n"
+        "I can help you with:\n"
+        "📦 **Order tracking**\n"
+        "🔄 **Returns & Refunds**\n"
+        "💳 **Payment Issues**\n"
+        "❓ **FAQs**\n\n"
         "How can I assist you today?"
     )
     return {"response": reply, "messages": [AIMessage(content=reply)]}

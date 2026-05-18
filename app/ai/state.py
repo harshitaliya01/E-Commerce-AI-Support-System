@@ -5,11 +5,10 @@ from langgraph.graph.message import add_messages
 
 # ── Intent labels the router assigns ──────────────────────────────────────────
 Intent = Literal[
+    "greeting",
     "order_tracking",
     "return_refund",
     "payment_issue",
-    "delivery_update",
-    "product_recommendation",
     "faq",
     "escalate_human",
     "out_of_scope",

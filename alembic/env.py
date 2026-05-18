@@ -4,13 +4,7 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from app.core.database import Base
-from app.auth.models import User
-from app.products.models import Product
-from app.orders.models import Order
-from app.payments.models import Payment
-from app.chatbot.models import ChatSession, ChatMessage
-from app.tickets.models import SupportTicket
-
+from app.models.model import Order, SupportTicket, Payment, Product, User
 from alembic import context
 
 # this is the Alembic Config object, which provides

@@ -8,8 +8,6 @@ Flow:
         order_tracking_node
         return_refund_node
         payment_issue_node
-        delivery_update_node
-        product_recommendation_node
         faq_node
         escalate_node
         fallback_node
@@ -23,12 +21,11 @@ from app.ai.state import AgentState
 from app.ai.node import (
     return_refund_node,
     payment_issue_node,
-    delivery_update_node,
-    product_recommendation_node,
     escalate_node,
-    fallback_node,
+    greeting_node
 )
 from app.ai.nodes.intent_node import intent_router_node
+from app.ai.nodes.fallback_node import fallback_node
 from app.ai.nodes.faq_node import faq_node
 from app.ai.nodes.order_track import order_tracking_node
 
@@ -39,11 +36,10 @@ def route_by_intent(state: AgentState) -> str:
         "order_tracking":          "order_tracking",
         "return_refund":           "return_refund",
         "payment_issue":           "payment_issue",
-        "delivery_update":         "delivery_update",
-        "product_recommendation":  "product_recommendation",
         "faq":                     "faq",
         "escalate_human":          "escalate",
         "out_of_scope":            "fallback",
+        "greeting":                "greeting"
     }
     return routing_map.get(state.intent or "out_of_scope", "fallback")
 
@@ -57,11 +53,10 @@ def build_agent_graph() -> StateGraph:
     graph.add_node("order_tracking",        order_tracking_node)
     graph.add_node("return_refund",         return_refund_node)
     graph.add_node("payment_issue",         payment_issue_node)
-    graph.add_node("delivery_update",       delivery_update_node)
-    graph.add_node("product_recommendation",product_recommendation_node)
     graph.add_node("faq",                   faq_node)
     graph.add_node("escalate",              escalate_node)
     graph.add_node("fallback",              fallback_node)
+    graph.add_node("greeting",              greeting_node)
 
     # Entry → intent classification
     graph.add_edge(START,              "intent_router")
@@ -74,19 +69,18 @@ def build_agent_graph() -> StateGraph:
             "order_tracking":          "order_tracking",
             "return_refund":           "return_refund",
             "payment_issue":           "payment_issue",
-            "delivery_update":         "delivery_update",
-            "product_recommendation":  "product_recommendation",
             "faq":                     "faq",
             "escalate":                "escalate",
             "fallback":                "fallback",
+            "greeting":                "greeting",
         },
     )
 
     # All leaf nodes → END
     for leaf in [
         "order_tracking", "return_refund", "payment_issue",
-        "delivery_update", "product_recommendation", "faq",
-        "escalate", "fallback",
+        "faq",
+        "escalate", "fallback","greeting"
     ]:
         graph.add_edge(leaf, END)
 
