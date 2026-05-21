@@ -5,13 +5,11 @@ from langgraph.graph.message import add_messages
 
 # ── Intent labels the router assigns ──────────────────────────────────────────
 Intent = Literal[
-    "greeting",
+    "unknown",
     "order_tracking",
     "return_refund",
     "payment_issue",
     "faq",
-    "escalate_human",
-    "out_of_scope",
 ]
 
 
@@ -19,21 +17,16 @@ Intent = Literal[
 class AgentState(BaseModel):
     # Full conversation history (LangGraph merges lists automatically)
     messages: Annotated[list, add_messages] = []
-
-    # Detected intent for the current turn
     intent: Optional[Intent] = None
 
-    # Customer / order context resolved from DB (injected by tools)
     order_id: Optional[str] = None
-    order_status: Optional[str] = None
-    order_items: Optional[list[dict]] = None
-    payment_status: Optional[str] = None
-    return_eligible: Optional[bool] = None
 
-    # Whether the conversation has been escalated to a human agent
-    escalation_ticket_created: bool = False
+    ticket_created: bool=False
+    track_order: bool=False
+    track_payment: bool=False
+    track_return: bool=False
+    needs_review: bool=False
 
-    # Final reply text produced by this turn
     response: Optional[str] = None
 
     class Config:

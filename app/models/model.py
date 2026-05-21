@@ -39,8 +39,6 @@ class SupportTicket(Base):
     order_id:Mapped[int|None]=mapped_column(ForeignKey("orders.id"),nullable=True)
     issue:Mapped[str]
     category:Mapped[str]=mapped_column(default="general")
-    priority:Mapped[str]=mapped_column(default="medium")
-    assigned_to:Mapped[str|None]=mapped_column(nullable=True)
     status:Mapped[str]=mapped_column(default="open")
     resolution:Mapped[str|None]=mapped_column(nullable=True)
     created_at:Mapped[datetime]=mapped_column(default=datetime.utcnow)
